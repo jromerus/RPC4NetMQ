@@ -5,7 +5,7 @@
     <Title>RPC4NetMQ</Title>
     <Description>Simple RPC wrapper around NetMQ</Description>
     <Version>1.1.0</Version>
-    <Authors>Vortex Evolution Software</Authors>
+    <Authors>José Enrique Romero Flores</Authors>
     <AssemblyVersion>1.1.0</AssemblyVersion>
     <FileVersion>1.1.0</FileVersion>
     <Copyright>José Enrique Romero Flores</Copyright>    
