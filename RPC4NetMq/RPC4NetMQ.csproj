@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
     <Title>RPC4NetMQ</Title>
-    <Description>Very simple RPC wrapper around NetMQ</Description>
+    <Description>Simple RPC wrapper around NetMQ</Description>
     <Version>1.1.0</Version>
     <Authors>Vortex Evolution Software</Authors>
     <AssemblyVersion>1.1.0</AssemblyVersion>
@@ -11,13 +11,7 @@
     <Copyright>José Enrique Romero Flores</Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>RPC4NetMQ</RepositoryType>
-  </PropertyGroup>    
-  <ItemGroup>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Castle.Core" Version="5.1.1" />
