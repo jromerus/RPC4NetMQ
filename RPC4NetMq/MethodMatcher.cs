@@ -18,19 +18,35 @@ namespace RPC4NetMq
     {
         public MethodInfo Match<T>(RpcRequest request) where T : class
         {
-            var type = typeof (T);
+            var type = typeof(T);            
+            var method = MatchMethodSignature(request.MethodSignature, type);
+
+            if (method != null) return method;
+            else
+            {   // If still here, search in implemented interfaces, this is the case of an interface that declares other interfaces
+                // public interface IInterface1 : IInterface2, IInterface3
+                foreach (var inter in type.GetTypeInfo().ImplementedInterfaces)
+                {
+                    method = MatchMethodSignature(request.MethodSignature, inter);
+                    if (method != null) return method;
+                }
+                return null;
+            }
+        }
+
+        private MethodInfo MatchMethodSignature(string methodSignature, System.Type type)
+        {
             var methods = type.GetMethods();
 
-            foreach(var method in methods)
+            foreach (var method in methods)
             {
-                if (request.MethodSignature == GetMethodSignature(method))
+                if (methodSignature == GetMethodSignature(method))
                 {
                     return method;
                 }
             }
             return null;
         }
-
 
         internal static ConcurrentDictionary<MethodInfo, string> SignaturesCaches = new ConcurrentDictionary<MethodInfo, string>();
         public string GetMethodSignature(MethodInfo methodInfo)
