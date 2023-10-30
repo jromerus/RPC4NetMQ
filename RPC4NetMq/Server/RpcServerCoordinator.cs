@@ -84,7 +84,7 @@ namespace RPC4NetMq.Server
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        log.LogDebug("Cancelllation requested");
+                        log.LogDebug("Cancellation requested");
                         break;
                     }
                     server.Poll(TimeSpan.FromMilliseconds(100));
