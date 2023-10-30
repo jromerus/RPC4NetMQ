@@ -10,6 +10,6 @@ namespace RPC4NetMq.Server
     {
         void Start();
         void HandleMessage(RpcRequest request);
-        void Stop ();
+        void Stop();
     }
 }

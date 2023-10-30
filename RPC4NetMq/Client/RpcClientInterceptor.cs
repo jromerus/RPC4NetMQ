@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RPC4NetMq.Attributes;
 using RPC4NetMq.MessengingTypes;
 using RPC4NetMq.Serialization;
@@ -69,12 +70,28 @@ namespace RPC4NetMq.Client
                 }
             }
 
-            string jsonRequest = JsonConvert.SerializeObject(request);            
-			if (log != null) log.LogDebug($"{Direction.Sent} -> {jsonRequest}");
+            string jsonRequest = JsonConvert.SerializeObject(request);
+            List<string> paramList = new List<string>();
+            foreach (var param in args)
+            {
+                if (param.Value != null && param.Value.GetType() == typeof(byte[]))
+                    paramList.Add(param.Key);
+            }
+
+            if (log != null)
+            {
+                //log.LogDebug($"{Direction.Sent} -> {jsonRequest}");
+                DebugIntercept(paramList, jsonRequest, Direction.Sent);
+            }
+
 			client.SendFrame(jsonRequest);
 
 			string jsonResponse = client.ReceiveFrameString();
-			if (log != null) log.LogDebug($"{Direction.Received} -> {jsonResponse}");						
+            if (log != null)
+            {
+                //log.LogDebug($"{Direction.Received} -> {jsonResponse}");
+                DebugIntercept(paramList, jsonRequest, Direction.Received);
+            }
 			
 			RpcResponse response = JSON.DeserializeResponse (request, jsonResponse);
             try
@@ -85,6 +102,27 @@ namespace RPC4NetMq.Client
                 log.LogError(ex, ex.Message);
                 throw new Exception(ex.Message);
             }
+        }
+
+        private void DebugIntercept(List<string> paramList, string json, Direction direction)
+        {
+            if (paramList.Count > 0)
+            {
+                JObject o = JObject.Parse(json);
+                var chp = o["Params"];
+                if (chp != null)
+                {
+                    foreach (string property in paramList)
+                    {
+                        foreach (JProperty child in chp.Children<JProperty>())
+                        {
+                            if (child.Name == property) child.Value = "..bytes hidden..";
+                        }
+                    }
+                    log.LogDebug($"{direction} -> {o.ToString()}");
+                } else log.LogDebug($"{direction} -> {json}");
+            }
+            else log.LogDebug($"{direction} -> {json}");
         }
 
         private static void MapResponseResult(IInvocation invocation, List<ParameterInfo> @params, RpcResponse response)

@@ -16,12 +16,13 @@ namespace test
 			return User.Super();
 		}
 		
-		void ICalculator.SetProgrammers (List<User> programmers) {
+		void ICalculator.SetProgrammers(List<User> programmers) {
 			return; 
 		}
 		
 		List<User> ICalculator.GoodProgrammers (List<User> all) {
 			return all.Where(p => p.Good).ToList();
 		}
+
 	}
 }

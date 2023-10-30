@@ -16,7 +16,7 @@ namespace test
 	
 	
 	public class User {
-		public string Name;
+		public string? Name;
 		public bool Authorized;
 		public bool Good;
 		
