@@ -30,10 +30,6 @@ namespace test
             TestSendFile(logger);
         }
 		
-		static void logClientMessage (Direction dir, string json) {
-			Console.WriteLine("{0}: {1}", dir, json);
-		}
-
 		private static void TestCalculator(ILogger logger)
 		{
             // Serialize Test
