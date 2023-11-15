@@ -19,11 +19,46 @@ namespace RPC4NetMq
         public static T CreateClient<T>(string connectionStringCommands, params IMethodFilter[] filters) where T : class
         {
             return CreateClient<T>(connectionStringCommands, null, filters);
-        }       
+        }
 
+        /// <summary>
+        /// Create an RPC netMQ client
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="connectionStringCommands"></param>
+        /// <param name="log"></param>
+        /// <param name="filters"></param>
+        /// <returns></returns>
         public static T CreateClient<T>(string connectionStringCommands, ILogger log, params IMethodFilter[] filters) where T : class
         {
-            return CreateClient<T>(new RpcClientInterceptor(connectionStringCommands, log, filters));            
+            return CreateClient<T>(connectionStringCommands, log, 0, filters);
+        }
+
+        /// <summary>
+        /// Create an RPC netMQ client
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="connectionStringCommands"></param>
+        /// <param name="timeOutSeconds">Seconds to throw a TimeOut exception</param>
+        /// <param name="filters"></param>
+        /// <returns></returns>
+        public static T CreateClient<T>(string connectionStringCommands, int timeOutSeconds, params IMethodFilter[] filters) where T : class
+        {
+            return CreateClient<T>(connectionStringCommands, null, timeOutSeconds, filters);
+        }
+
+        /// <summary>
+        /// Create an RPC netMQ client
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="connectionStringCommands"></param>
+        /// <param name="log"></param>
+        /// <param name="timeOutSeconds">Seconds to throw a TimeOut exception</param>
+        /// <param name="filters"></param>
+        /// <returns></returns>
+        public static T CreateClient<T>(string connectionStringCommands, ILogger log, int timeOutSeconds, params IMethodFilter[] filters) where T : class
+        {
+            return CreateClient<T>(new RpcClientInterceptor(connectionStringCommands, log, timeOutSeconds, filters));            
         }
 
         internal static T CreateClient<T>(RpcClientInterceptor interceptor) where T : class

@@ -20,16 +20,18 @@ namespace RPC4NetMq.Client
 
         RequestSocket client;
         ILogger log;
+        int timeOutSeconds = 0;
         
 		public RpcClientInterceptor(string connectionStringCommands,  params IMethodFilter[] methodFilters)
-			: this (connectionStringCommands, null, methodFilters)
+			: this (connectionStringCommands, null, 0, methodFilters)
         {
 		}
 		
-        public RpcClientInterceptor(string connectionStringCommands, ILogger log, params IMethodFilter[] methodFilters)
+        public RpcClientInterceptor(string connectionStringCommands, ILogger log, int timeOutSeconds, params IMethodFilter[] methodFilters)
         {
 			this.log = log;
-        	client = new RequestSocket(connectionStringCommands);
+            if (timeOutSeconds > 0) this.timeOutSeconds = timeOutSeconds;
+            client = new RequestSocket(connectionStringCommands);               
             _methodFilters = new List<IMethodFilter>((methodFilters ?? new IMethodFilter[0]).Union(new [] {new DefaultMethodFilter()}));
             _methodFilters.RemoveAll(filter => filter == null);
         }
@@ -68,7 +70,8 @@ namespace RPC4NetMq.Client
                 {                    
                     request.UtcExpiryTime = DateTime.UtcNow.AddSeconds(att.Seconds);
                 }
-            }
+                else request.UtcExpiryTime = DateTime.UtcNow.AddSeconds(5);
+            } else request.UtcExpiryTime = DateTime.UtcNow.AddSeconds(5);
 
             string jsonRequest = JsonConvert.SerializeObject(request);
             List<string> paramList = new List<string>();
@@ -85,15 +88,24 @@ namespace RPC4NetMq.Client
             }
 
 			client.SendFrame(jsonRequest);
+            //string jsonResponse = client.ReceiveFrameString();
+            string jsonResponse = null;
 
-			string jsonResponse = client.ReceiveFrameString();
+            if (timeOutSeconds == 0) jsonResponse = client.ReceiveFrameString();
+            else if (!client.TryReceiveFrameString(TimeSpan.FromSeconds(5), out jsonResponse))
+            {
+                string msg = "Time Out!";
+                log.LogError(msg);
+                throw new Exception(msg);
+            }
+
             if (log != null)
             {
                 //log.LogDebug($"{Direction.Received} -> {jsonResponse}");
                 DebugIntercept(paramList, jsonRequest, Direction.Received);
             }
 			
-			RpcResponse response = JSON.DeserializeResponse (request, jsonResponse);
+			RpcResponse response = JSON.DeserializeResponse(request, jsonResponse);
             try
             {
                 MapResponseResult(invocation, @params, response);
