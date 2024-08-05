@@ -12,7 +12,8 @@
     <RepositoryType>RPC4NetMQ</RepositoryType>    
     <PackageReadmeFile>README.md</PackageReadmeFile>    
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>    
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>    
+    <PackageProjectUrl>https://github.com/jromerus/RPC4NetMQ</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
