@@ -13,7 +13,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>    
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>    
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>    
-    <PackageProjectUrl>https://github.com/jromerus/RPC4NetMQ</PackageProjectUrl>
+    <PackageProjectUrl></PackageProjectUrl>    
+    <RepositoryUrl>https://github.com/jromerus/RPC4NetMQ</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
