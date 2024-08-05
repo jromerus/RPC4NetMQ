@@ -11,7 +11,8 @@
     <Copyright>José Enrique Romero Flores</Copyright>    
     <RepositoryType>RPC4NetMQ</RepositoryType>    
     <PackageReadmeFile>README.md</PackageReadmeFile>    
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>    
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
