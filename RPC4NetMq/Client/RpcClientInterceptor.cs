@@ -95,7 +95,7 @@ namespace RPC4NetMq.Client
             else if (!client.TryReceiveFrameString(TimeSpan.FromSeconds(5), out jsonResponse))
             {
                 string msg = "Time Out!";
-                log.LogError(msg);
+                log?.LogError(msg);
                 throw new Exception(msg);
             }
 
@@ -111,7 +111,7 @@ namespace RPC4NetMq.Client
                 MapResponseResult(invocation, @params, response);
             } catch (Exception ex)
             {
-                log.LogError(ex, ex.Message);
+                log?.LogError(ex, ex.Message);
                 throw new Exception(ex.Message);
             }
         }
@@ -131,10 +131,10 @@ namespace RPC4NetMq.Client
                             if (child.Name == property) child.Value = "..bytes hidden..";
                         }
                     }
-                    log.LogDebug($"{direction} -> {o.ToString()}");
-                } else log.LogDebug($"{direction} -> {json}");
+                    log?.LogDebug($"{direction} -> {o.ToString()}");
+                } else log?.LogDebug($"{direction} -> {json}");
             }
-            else log.LogDebug($"{direction} -> {json}");
+            else log?.LogDebug($"{direction} -> {json}");
         }
 
         private static void MapResponseResult(IInvocation invocation, List<ParameterInfo> @params, RpcResponse response)

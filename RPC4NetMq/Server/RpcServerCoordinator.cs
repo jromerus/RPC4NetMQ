@@ -150,16 +150,24 @@ namespace RPC4NetMq.Server
             else log.LogDebug("{0}: {1}", message, json);
         }
 
-        void SendResponse (RpcResponse rpcResponse) {        	
-        	string jsonResponse = JsonConvert.SerializeObject(rpcResponse);            
-            List<string> paramList = new List<string>();
-            foreach(var param in rpcResponse.ChangedParams)
+        void SendResponse(RpcResponse rpcResponse)
+        {
+            try
             {
-                if (param.Value != null && param.Value.GetType() == typeof(byte[]))
-                    paramList.Add(param.Key);
+                string jsonResponse = JsonConvert.SerializeObject(rpcResponse);
+                List<string> paramList = new List<string>();
+                foreach (var param in rpcResponse.ChangedParams)
+                {
+                    if (param.Value != null && param.Value.GetType() == typeof(byte[]))
+                        paramList.Add(param.Key);
+                }
+                DebugMessage(paramList, jsonResponse, "Server Send", "ChangedParams");
+                server.SendFrame(jsonResponse);
             }
-            DebugMessage(paramList, jsonResponse, "Server Send", "ChangedParams");
-            server.SendFrame(jsonResponse);
+            catch (Exception ex)
+            {
+                log.LogError(ex.Message, ex.StackTrace);
+            }
         }
                 
         public void HandleMessage(RpcRequest msg)
