@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using NetMQ;
-using NetMQ.Monitoring;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -8,11 +7,8 @@ using RPC4NetMq.MessengingTypes;
 using RPC4NetMq.Serialization;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.ServiceModel.Channels;
 using System.Threading;
-using System.Xml.Linq;
 
 namespace RPC4NetMq.Server
 {
@@ -56,8 +52,15 @@ namespace RPC4NetMq.Server
         {
             Init();
             //_tunnel.SubscribeAsync<RpcRequest>(_serverId ?? typeof(T).Name, HandleMesage);
-            t = new Thread(() => { Run(cts.Token); });            
-            t.Start();            
+            try
+            {
+                t = new Thread(() => { Run(cts.Token); });
+                t.Start();
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, ex.Message);
+            }
         }
         
         public void Stop() {

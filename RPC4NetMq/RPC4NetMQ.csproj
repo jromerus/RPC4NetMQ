@@ -4,10 +4,10 @@
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
     <Title>RPC4NetMQ</Title>
     <Description>Simple RPC wrapper around NetMQ</Description>
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
     <Authors>José Enrique Romero Flores</Authors>
-    <AssemblyVersion>1.2.1</AssemblyVersion>
-    <FileVersion>1.2.1</FileVersion>
+    <AssemblyVersion>1.3.0</AssemblyVersion>
+    <FileVersion>1.3.0</FileVersion>
     <Copyright>José Enrique Romero Flores</Copyright>    
     <RepositoryType>RPC4NetMQ</RepositoryType>    
     <PackageReadmeFile>README.md</PackageReadmeFile>    
@@ -31,7 +31,7 @@
   <ItemGroup>
     <PackageReference Include="Castle.Core" Version="5.1.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
-    <PackageReference Include="NetMQ" Version="4.0.1.13" />
+    <PackageReference Include="NetMQ" Version="4.0.1.16" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
