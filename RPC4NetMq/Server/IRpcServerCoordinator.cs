@@ -9,7 +9,9 @@ namespace RPC4NetMq.Server
     public interface IRpcServerCoordinator
     {
         void Start();
-        void HandleMessage(RpcRequest request);
+        //void HandleMessage(RpcRequest request);
         void Stop();
+
+        void Dispose();
     }
 }

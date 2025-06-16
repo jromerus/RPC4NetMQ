@@ -12,8 +12,7 @@ namespace test
 		void SetProgrammers (List<User> programmers);
 		
 		List<User> GoodProgrammers(List<User> allProgrammers);
-	}
-	
+	}	
 	
 	public class User {
 		public string? Name;

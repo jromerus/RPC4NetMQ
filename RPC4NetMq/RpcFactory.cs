@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using RPC4NetMq.Client;
 using RPC4NetMq.Server;
+using RPC4NetMQ.Server;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -69,7 +70,8 @@ namespace RPC4NetMq
         
         public static IRpcServerCoordinator CreateServer<T>(T realImplementation, string connectionStringCommands, ILogger log) where T : class
         {
-            return new RpcServerCoordinator<T>(realImplementation, connectionStringCommands, log);
+            //return new RpcServerCoordinator<T>(realImplementation, connectionStringCommands, log);
+            return new ConcurrentRpcServer<T>(realImplementation, connectionStringCommands, log);
         }
 
         /// <summary>

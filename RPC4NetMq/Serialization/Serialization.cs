@@ -41,7 +41,6 @@ namespace RPC4NetMq.Serialization
 			if (o==null) return null;
 			string json = JsonConvert.SerializeObject (o);
 			object data =   JsonConvert.DeserializeObject (json, type);
-			int j = 55;
 			return data;
 		}
 				

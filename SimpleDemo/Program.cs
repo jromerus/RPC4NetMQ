@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RPC4NetMq;
+using RPC4NetMq.Client;
 using Serilog;
 using Serilog.Core;
 using Serilog.Debugging;
@@ -25,8 +26,8 @@ namespace test
 			.AddSerilog(Log.Logger);
 
             ILogger logger = loggerFactory.CreateLogger("RPCClient");           
-			
-            TestCalculator(logger);
+			            
+            //TestCalculator(logger);
             TestSendFile(logger);
         }
 		
@@ -40,22 +41,47 @@ namespace test
             var server = RpcFactory.CreateServer<ICalculator>(new Calculator(), "tcp://127.0.0.1:13777", logger);
             server.Start();
 
-            var calculator = RpcFactory.CreateClient<ICalculator>(">tcp://127.0.0.1:13777", logger, 5);
-            var result = calculator.Add(1, 2);
-            Console.WriteLine("Result is: {0}", result);
+            List<Task> tasks = new List<Task>();
+            int numThreads = 200;
 
-            var programmers = calculator.Programmers();
-            Console.WriteLine("Programmer Count: {0}", programmers.Count);
+            for (int i = 0; i < numThreads; i++)
+            {
+                Console.WriteLine("Starting test {0}", i);
+                try
+                {
+                    /// Create a new thread to test the RPC client                    
+                    tasks.Add(Task.Run(() => {
+                        DoCalculations(logger, i);
 
-            var goodProgrammers = calculator.GoodProgrammers(programmers);
-            Console.WriteLine("Good Programmer Count: {0}", goodProgrammers.Count);
+                        //var programmers = calculator.Programmers();
+                        //Console.WriteLine("Thread {0} Programmer Count: {1}", i, programmers.Count);
 
-            calculator.SetProgrammers(programmers);
+                        //var goodProgrammers = calculator.GoodProgrammers(programmers);
+                        //Console.WriteLine("Good Programmer Count: {0}", goodProgrammers.Count);
 
+                        //calculator.SetProgrammers(programmers);
+                    }));
+                    //Thread.Sleep(100); // Simulate some delay before starting the next task
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error in test {0}: {1}", i, ex.Message);
+                }
+            }
+
+            Task.WaitAll(tasks.ToArray(), -1);
             Console.Write("Press any key to continue . . . ");
             Console.ReadKey(true);
-            //server.Stop();
+            server.Stop();
+            server.Dispose();
             Console.WriteLine("Shutting Down..");
+        }
+
+        private static void DoCalculations(ILogger logger, int i)
+        {
+            var calculator = RpcFactory.CreateClient<ICalculator>(">tcp://127.0.0.1:13777", logger, 0);
+            var result = calculator.Add(1, 2);
+            Console.WriteLine("Thread {0} Result is: {1}", i, result);
         }
 
 		private static void TestSendFile(ILogger logger)

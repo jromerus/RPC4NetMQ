@@ -14,11 +14,12 @@ using RPC4NetMq.Serialization;
 
 namespace RPC4NetMq.Client
 {
-    public class RpcClientInterceptor : IInterceptor
+    public class RpcClientInterceptor : IInterceptor, IDisposable
     {        
         private readonly List<IMethodFilter> _methodFilters;
 
-        RequestSocket client;
+        //RequestSocket client;
+        DealerSocket client;
         ILogger log;
         int timeOutSeconds = 0;
         
@@ -31,9 +32,22 @@ namespace RPC4NetMq.Client
         {
 			this.log = log;
             if (timeOutSeconds > 0) this.timeOutSeconds = timeOutSeconds;
-            client = new RequestSocket(connectionStringCommands);               
+            //client = new RequestSocket(connectionStringCommands);               
+            client = new DealerSocket(connectionStringCommands);
+            client.Options.Identity = Guid.NewGuid().ToByteArray();
+
             _methodFilters = new List<IMethodFilter>((methodFilters ?? new IMethodFilter[0]).Union(new [] {new DefaultMethodFilter()}));
             _methodFilters.RemoveAll(filter => filter == null);
+        }
+
+        ~RpcClientInterceptor() 
+        {
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            client.Close();
         }
 
         public void Intercept(IInvocation invocation)
@@ -87,7 +101,8 @@ namespace RPC4NetMq.Client
                 DebugIntercept(paramList, jsonRequest, Direction.Sent);
             }
 
-			client.SendFrame(jsonRequest);
+            client.SendFrame(jsonRequest);
+            //client.SendMoreFrame("").SendFrame(jsonRequest);
             //string jsonResponse = client.ReceiveFrameString();
             string jsonResponse = null;
 

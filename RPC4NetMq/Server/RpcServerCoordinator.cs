@@ -38,6 +38,13 @@ namespace RPC4NetMq.Server
 			server.Options.TcpKeepaliveIdle = new TimeSpan(0, 0, 25);            
         }
 
+        public void Dispose()
+        {
+            Stop();
+            cts.Dispose();
+            server.Dispose();
+        }
+
         ~RpcServerCoordinator()
         {
             cts.Dispose();

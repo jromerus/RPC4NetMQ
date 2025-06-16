@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>net472;net6.0</TargetFrameworks>
     <Title>RPC4NetMQ</Title>
     <Description>Simple RPC wrapper around NetMQ</Description>
     <Version>1.3.0</Version>
