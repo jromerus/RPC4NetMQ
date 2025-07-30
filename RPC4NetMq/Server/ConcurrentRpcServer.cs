@@ -217,7 +217,7 @@ namespace RPC4NetMQ.Server
             _running = false;
             _requestQueue.CompleteAdding();
             _replyQueue.CompleteAdding();
-            _router.Dispose();
+            if (_router != null) _router.Dispose();
         }
 
         public void Stop()
@@ -225,7 +225,7 @@ namespace RPC4NetMQ.Server
             try
             {
                 _running = false;
-                _router.Close();
+                if (_router!= null) _router.Close();
                 cts.Cancel();               
             }
             catch (Exception ex)
