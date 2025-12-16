@@ -1,5 +1,3 @@
-using RPC4NetMq.MessengingTypes;
-
 namespace RPC4NetMq.Server
 {
     /// <summary>

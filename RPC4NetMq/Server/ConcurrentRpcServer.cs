@@ -1,167 +1,165 @@
-﻿using NetMQ.Sockets;
+﻿using Microsoft.Extensions.Logging;
 using NetMQ;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using RPC4NetMq.Server;
-using RPC4NetMq;
-using RPC4NetMq.MessengingTypes;
-using System.Linq;
-using RPC4NetMq.Serialization;
+using NetMQ.Sockets;
 using Newtonsoft.Json;
+using RPC4NetMq.MessengingTypes;
+using RPC4NetMq.Serialization;
+using System;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
-namespace RPC4NetMQ.Server
+namespace RPC4NetMq.Server
 {
-    public class ConcurrentRpcServer<T> : IDisposable, IRpcServerCoordinator where T : class
+    /// <summary>
+    /// [ RouterSocket + Poller ]  ← 1 hilo NetMQ
+    ///          │
+    ///          ▼
+    ///   Recepción mensajes
+    ///          │
+    ///          ▼
+    ///   Task.Run por request  ← pool de threads.NET
+    ///          │
+    ///          ▼
+    ///   NetMQQueue(thread-safe)
+    ///          │
+    ///          ▼
+    ///   Envío serializado por RouterSocket
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public sealed class ConcurrentRpcServer<T> : IRpcServerCoordinator, IDisposable
+     where T : class
     {
         private readonly T _realInstance;
         private readonly RouterSocket _router;
-        private readonly BlockingCollection<NetMQMessage> _requestQueue = new BlockingCollection<NetMQMessage>();
-        private readonly BlockingCollection<NetMQMessage> _replyQueue = new BlockingCollection<NetMQMessage>();
-        private Task _receiverTask;
-        private Task[] _workerTasks;
-        private Task _senderTask;
-        private bool _running = false;
-        int workerCount = 4;
-        ILogger log;
-        private CancellationTokenSource cts;
-        string address;        
+        private readonly NetMQPoller _poller;
+        private readonly NetMQQueue<NetMQMessage> _outgoing;
+        private readonly ILogger _log;
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+
+        private bool _started;
 
         public ConcurrentRpcServer(T realInstance, string address, ILogger log)
         {
             _realInstance = realInstance;
-            _router = new RouterSocket(address);
-            this.log = log;
-            this.address = address;
-            cts = new CancellationTokenSource();
+            _log = log;
+
+            _router = new RouterSocket();
+            _router.Bind(address);
+
+            _outgoing = new NetMQQueue<NetMQMessage>();
+            _poller = new NetMQPoller { _router, _outgoing };
+
+            _router.ReceiveReady += OnReceive;
+            _outgoing.ReceiveReady += OnOutgoing;
         }
 
         public void Start()
         {
-            _running = true;
-            var token = cts.Token;
+            if (_started) return;
+            _started = true;
 
-            // Recepción de mensajes
-            _receiverTask = Task.Run(() =>
+            Task.Run(() =>
             {
-                while (_running)
+                try
                 {
-                    try
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            log.LogDebug("Cancellation requested");
-                            Console.WriteLine($"Task {Task.CurrentId} was cancelled before it got started.");
-                            token.ThrowIfCancellationRequested();
-                        }
-                        var message = _router.ReceiveMultipartMessage();
-                        _requestQueue.Add(message);
-                    }
-                    catch (Exception ex)
-                    {
-                        log.LogError(ex, ex.Message);
-                        Console.WriteLine($"[Receiver] Error: {ex.Message}");
-                    }
+                    _poller.Run();
                 }
-            }, token);
-
-            // Procesamiento en paralelo
-            _workerTasks = new Task[workerCount];
-            for (int i = 0; i < workerCount; i++)
-            {
-                if (token.IsCancellationRequested) break;
-
-                _workerTasks[i] = Task.Run(async () =>
+                catch (Exception ex)
                 {
-                    foreach (var message in _requestQueue.GetConsumingEnumerable())
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            log.LogDebug("Cancellation requested");
-                            Console.WriteLine($"Task {Task.CurrentId} was cancelled before it got started.");
-                            token.ThrowIfCancellationRequested();
-                        }
-
-                        try
-                        {
-                            var response = await HandleRpcAsync(message);
-                            if (response != null)
-                            {
-                                _replyQueue.Add(response);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            log.LogError(ex, ex.Message);
-                            Console.WriteLine($"[Worker] Error: {ex.Message}");
-                        }
-                    }
-                });
-            }
-
-            // Envío centralizado de respuestas
-            _senderTask = Task.Run(() =>
-            {
-                foreach (var reply in _replyQueue.GetConsumingEnumerable())
-                {
-                    try
-                    {
-                        Console.WriteLine($"[Sender] Enviando mensaje a {reply.First.ConvertToString()}");
-                        _router.SendMultipartMessage(reply);
-                    }
-                    catch (Exception ex)
-                    {
-                        log.LogError(ex, ex.Message);
-                        Console.WriteLine($"[Sender] Error: {ex.Message}");
-                    }
+                    _log.LogCritical(ex, "RPC poller crashed");
                 }
             });
         }
 
-        // Ejemplo de lógica RPC simulada, adaptable a tu sistema de tipos anónimos
-        private async Task<NetMQMessage> HandleRpcAsync(NetMQMessage request)
+        public void Stop()
         {
-            var clientId = request.Pop();      // frame 0: identidad cliente
-            //request.Pop();                     // frame 1: separador
-            var payload = request.Pop().ConvertToString();  // frame 2: datos
+            // Contrato síncrono, implementación ordenada
+            StopInternalAsync().GetAwaiter().GetResult();
+        }
 
-            log.LogDebug($"[RPC] Request payload: {payload}");
-            Console.WriteLine($"[RPC] Request payload: {payload}");
+        private async Task StopInternalAsync()
+        {
+            if (!_started) return;
 
-            RpcRequest rpcRequest = JSON.DeSerializeRequest(payload);
-            List<string> paramList = new List<string>();
-            foreach (var param in rpcRequest.Params)
-            {
-                if (param.Value != null && param.Value.GetType() == typeof(byte[]))
-                    paramList.Add(param.Key);
-            }
+            _cts.Cancel();
 
+            // permite drenar colas
+            await Task.Delay(50);
+
+            _poller.Stop();
+
+            _outgoing.Dispose();
+            _router.Dispose();
+            _poller.Dispose();
+
+            _started = false;
+        }
+
+        public void Dispose()
+        {
+            Stop();
+        }
+
+        private void OnReceive(object sender, NetMQSocketEventArgs e)
+        {
             try
             {
-                var rpcResponse = await BuildResponse(rpcRequest);
-                string jsonResponse = JsonConvert.SerializeObject(rpcResponse);
+                var msg = e.Socket.ReceiveMultipartMessage();
 
-                var reply = new NetMQMessage();
-                reply.Append(clientId);
-                //reply.AppendEmptyFrame();
-                reply.Append(jsonResponse);
-                string trace = $"[Worker] Responding to client ID {clientId.ConvertToString()} with: {jsonResponse}";
-                log.LogDebug(trace);
-                Console.WriteLine(trace);
-                return reply;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var reply = await HandleRpcAsync(msg);
+                        if (reply != null)
+                            _outgoing.Enqueue(reply);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogError(ex, "Worker failed");
+                    }
+                });
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Receive failed");
+            }
+        }
+
+        private void OnOutgoing(object sender, NetMQQueueEventArgs<NetMQMessage> e)
+        {
+            try
+            {
+                _router.SendMultipartMessage(e.Queue.Dequeue());
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Send failed");
+            }
+        }
+
+        private async Task<NetMQMessage> HandleRpcAsync(NetMQMessage request)
+        {
+            var clientId = request.Pop();
+            var payload = request.Pop().ConvertToString();
+
+            var rpcRequest = JSON.DeSerializeRequest(payload);
+            var rpcResponse = await BuildResponse(rpcRequest);
+
+            var reply = new NetMQMessage();
+            reply.Append(clientId);
+            reply.Append(JsonConvert.SerializeObject(rpcResponse));
+
+            return reply;
         }
 
         public Task<RpcResponse> BuildResponse(RpcRequest msg)
-        {            
+        {
             if (msg.UtcExpiryTime != null && msg.UtcExpiryTime < DateTime.UtcNow)
             {
                 throw new Exception(string.Format("Msg {0}.{1} from {2} has been expired", msg.DeclaringType, msg.MethodName, msg.ResponseAddress));
-            }            
+            }
 
             var response = new RpcResponse
             {
@@ -201,37 +199,10 @@ namespace RPC4NetMQ.Server
             catch (Exception ex)
             {
                 response.Exception = ex;
-                log.LogError(ex, ex.Message);
+                _log.LogError(ex, ex.Message);
             }
 
             return Task.FromResult(response);
-        }
-
-        ~ConcurrentRpcServer()
-        {
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            _running = false;
-            _requestQueue.CompleteAdding();
-            _replyQueue.CompleteAdding();
-            if (_router != null) _router.Dispose();
-        }
-
-        public void Stop()
-        {
-            try
-            {
-                _running = false;
-                if (_router!= null) _router.Close();
-                cts.Cancel();               
-            }
-            catch (Exception ex)
-            {
-               log.LogError(ex, ex.Message);
-            }
-        }
+        }       
     }
 }
